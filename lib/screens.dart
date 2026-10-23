@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart' show LatLng;
 import 'geo.dart';
 import 'home.dart';
 import 'map_screen.dart';
+import 'profile.dart';
 import 'scan_register.dart';
 import 'theme.dart';
 
@@ -291,42 +292,5 @@ class TripScreen extends StatelessWidget {
             ]);
           },
         ),
-      );
-}
-
-// ───────────── Profile ─────────────
-class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
-  @override
-  Widget build(BuildContext context) => ListenableBuilder(
-        listenable: app,
-        builder: (_, __) => ListView(padding: const EdgeInsets.all(20), children: [
-          const SectionTitle('Profile'),
-          CultureCard(accent: C.teal, onTap: () => open(context, const CultureScreen()), child: Row(children: [const Icon(Icons.theater_comedy, color: C.teal), const SizedBox(width: 12), Expanded(child: Text('Culture & Art Explorer', style: serif(16))), const Icon(Icons.chevron_right)])),
-          const SizedBox(height: 12),
-          CultureCard(accent: C.maroon, onTap: () => open(context, const TripScreen()), child: Row(children: [const Icon(Icons.route, color: C.maroon), const SizedBox(width: 12), Expanded(child: Text('Trip Planner', style: serif(16))), const Icon(Icons.chevron_right)])),
-          const SizedBox(height: 12),
-          CultureCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Language', style: serif(18)),
-            const SizedBox(height: 10),
-            Wrap(spacing: 8, runSpacing: 8, children: [
-              for (final l in languages)
-                ChoiceChip(
-                  label: Text(l), selected: app.lang == l, onSelected: (_) => app.setLang(l),
-                  selectedColor: C.maroon, backgroundColor: Colors.white, side: const BorderSide(color: C.gold),
-                  labelStyle: TextStyle(color: app.lang == l ? Colors.white : C.maroon, fontWeight: FontWeight.w700),
-                ),
-            ]),
-          ])),
-          const SizedBox(height: 12),
-          CultureCard(accent: C.teal, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Your journey', style: serif(18)),
-            const SizedBox(height: 6),
-            Text('${app.collected.length} places collected'),
-            Text('${app.trip.length} stops in your trip'),
-          ])),
-          const SizedBox(height: 12),
-          CultureCard(accent: C.maroon, child: Text('Demo build: places and stories are sample data stored in the app. Login, the live database and Gemini scanning connect in the next phase.', style: const TextStyle(fontSize: 13))),
-        ]),
       );
 }
