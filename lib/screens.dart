@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'data.dart';
+import 'package:latlong2/latlong.dart' show LatLng;
+import 'geo.dart';
 import 'home.dart';
+import 'map_screen.dart';
 import 'scan_register.dart';
 import 'theme.dart';
 
 final tab = ValueNotifier<int>(0);
-final mapCenter = ValueNotifier<Offset>(const Offset(.41, .73));
+/// Point the Locate Gems map is focused on (real lat/lng).
+final mapCenter = ValueNotifier<LatLng>(kDefaultFocus);
 
 void open(BuildContext c, Widget w) => Navigator.push(c, MaterialPageRoute(builder: (_) => w));
 
@@ -213,7 +217,7 @@ class CultureScreen extends StatelessWidget {
                         const SizedBox(height: 12),
                         Wrap(spacing: 10, children: [
                           PrimaryButton('Where to find it', () {
-                            mapCenter.value = Offset(p.x, p.y);
+                            mapCenter.value = geoOf(p.id);
                             tab.value = 3;
                             Navigator.pop(context);
                           }, icon: Icons.place),
@@ -228,122 +232,7 @@ class CultureScreen extends StatelessWidget {
       );
 }
 
-// ───────────── Locate Gems (map) ─────────────
-const _outline = [
-  [38, 0], [50, 5], [58, 12], [66, 20], [78, 26], [92, 28], [100, 36], [92, 42], [84, 40], [80, 48], [72, 52], [66, 58],
-  [62, 68], [56, 82], [50, 100], [44, 86], [38, 70], [30, 58], [24, 48], [14, 44], [8, 40], [14, 32], [22, 28], [24, 20], [32, 12],
-];
-const _radius = .13;
-
-class IndiaPainter extends CustomPainter {
-  final Offset center;
-  final List<Place> shown;
-  IndiaPainter(this.center, this.shown);
-  @override
-  void paint(Canvas c, Size s) {
-    final path = Path();
-    for (var i = 0; i < _outline.length; i++) {
-      final x = _outline[i][0] / 100 * s.width, y = _outline[i][1] / 100 * s.height;
-      i == 0 ? path.moveTo(x, y) : path.lineTo(x, y);
-    }
-    path.close();
-    c.drawPath(path, Paint()..color = const Color(0xFFF4DDB8));
-    c.drawPath(path, Paint()..color = C.saffron..style = PaintingStyle.stroke..strokeWidth = 2);
-    final o = Offset(center.dx * s.width, center.dy * s.height);
-    c.drawCircle(o, _radius * s.width, Paint()..color = C.teal.withOpacity(.25));
-    c.drawCircle(o, _radius * s.width, Paint()..color = C.teal..style = PaintingStyle.stroke..strokeWidth = 2);
-    for (final p in shown) {
-      c.drawCircle(Offset(p.x * s.width, p.y * s.height), 5, Paint()..color = typeColor(p.type));
-      c.drawCircle(Offset(p.x * s.width, p.y * s.height), 5, Paint()..color = Colors.white..style = PaintingStyle.stroke..strokeWidth = 1.2);
-    }
-    c.drawCircle(o, 6, Paint()..color = C.ink);
-  }
-
-  @override
-  bool shouldRepaint(covariant IndiaPainter o) => true;
-}
-
-class MapScreen extends StatefulWidget {
-  const MapScreen({super.key});
-  @override
-  State<MapScreen> createState() => _MapState();
-}
-
-class _MapState extends State<MapScreen> {
-  static const filters = {'All': null, 'Monuments': 'monument', 'Beaches': 'beach', 'Culture': 'culture', 'Hidden gems': 'gem'};
-  String filter = 'All';
-
-  @override
-  Widget build(BuildContext context) => ListenableBuilder(
-        listenable: Listenable.merge([app, mapCenter]),
-        builder: (_, __) {
-          final type = filters[filter];
-          final shown = places.where((p) => matchType(p.type, type)).toList();
-          final near = nearby(mapCenter.value, r: _radius, type: type);
-          return Column(children: [
-            const Padding(padding: EdgeInsets.only(top: 12), child: SectionTitle('Locate Gems')),
-            SizedBox(
-              height: 44,
-              child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 12), children: [
-                for (final f in filters.keys)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      label: Text(f), selected: filter == f, onSelected: (_) => setState(() => filter = f),
-                      selectedColor: C.maroon, backgroundColor: Colors.white,
-                      labelStyle: TextStyle(color: filter == f ? Colors.white : C.maroon, fontWeight: FontWeight.w700),
-                      side: const BorderSide(color: C.gold),
-                    ),
-                  ),
-              ]),
-            ),
-            Expanded(
-              flex: 5,
-              child: Center(
-                child: AspectRatio(
-                  aspectRatio: .85,
-                  child: LayoutBuilder(
-                    builder: (_, box) => GestureDetector(
-                      onTapDown: (d) => mapCenter.value = Offset(d.localPosition.dx / box.maxWidth, d.localPosition.dy / box.maxHeight),
-                      child: CustomPaint(size: Size(box.maxWidth, box.maxHeight), painter: IndiaPainter(mapCenter.value, shown)),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const Padding(padding: EdgeInsets.symmetric(vertical: 4), child: Text('Tap anywhere on the map to see what is nearby', style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic))),
-            Expanded(
-              flex: 4,
-              child: near.isEmpty
-                  ? const Center(child: Padding(padding: EdgeInsets.all(20), child: Text('No places in range. Tap closer to Agra, Jaipur, Mumbai, Mangalore, Kochi or Madurai.', textAlign: TextAlign.center)))
-                  : ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 12), children: [
-                      for (final p in near)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: CultureCard(
-                            accent: typeColor(p.type),
-                            onTap: () => open(context, PlaceDetail(p)),
-                            child: Row(children: [
-                              Icon(typeIcon(p.type), color: typeColor(p.type)),
-                              const SizedBox(width: 10),
-                              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                Text(p.name, style: serif(15)),
-                                Text('${typeLabel(p.type)}  |  ${p.city}', style: const TextStyle(fontSize: 12)),
-                              ])),
-                              IconButton(
-                                tooltip: 'Add to trip',
-                                onPressed: () => app.toggleTrip(p.id),
-                                icon: Icon(app.trip.contains(p.id) ? Icons.check_circle : Icons.add_circle_outline, color: C.teal),
-                              ),
-                            ]),
-                          ),
-                        ),
-                    ]),
-            ),
-          ]);
-        },
-      );
-}
+// Locate Gems (map) now lives in map_screen.dart (flutter_map, offline).
 
 // ───────────── Trip planner ─────────────
 class TripScreen extends StatelessWidget {

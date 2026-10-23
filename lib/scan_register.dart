@@ -4,6 +4,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'data.dart';
 import 'home.dart';
+import 'geo.dart' show geoOf;
 import 'screens.dart' show tab, mapCenter, open, PlaceDetail;
 import 'theme.dart' show C, CultureCard, serif;
 
@@ -456,7 +457,7 @@ void showLockedSheet(BuildContext context, Place p) {
               child: FilledButton.icon(
                 onPressed: () {
                   Navigator.pop(ctx);
-                  mapCenter.value = Offset(p.x, p.y);
+                  mapCenter.value = geoOf(p.id);
                   tab.value = 3;
                 },
                 icon: const Icon(Icons.explore, size: 18),

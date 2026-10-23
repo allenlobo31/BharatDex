@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'data.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'geo.dart' show geoOf;
 import 'screens.dart' show tab, mapCenter;
 
 const kM800 = Color(0xFF7A0C1E);
@@ -493,7 +494,7 @@ void showLocSheet(BuildContext context, HomeLoc l, {String? banner}) {
             FilledButton.icon(
               onPressed: () {
                 Navigator.pop(ctx);
-                mapCenter.value = Offset(l.x, l.y);
+                mapCenter.value = geoOf(l.id);
                 tab.value = 3;
               },
               icon: const Icon(Icons.explore, size: 16),
